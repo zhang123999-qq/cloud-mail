@@ -42,12 +42,8 @@ const starService = {
 
 	async list(c, params, userId) {
 		let { emailId, size } = params;
-		emailId = Number(emailId);
+		emailId = Number(emailId) || 0;
 		size = Number(size);
-
-		if (!emailId) {
-			emailId = 9999999999;
-		}
 
 		const list = await orm(c).select({
 			isStar: sql`1`.as('isStar'),
@@ -59,7 +55,7 @@ const starService = {
 				and(
 					eq(star.userId, userId),
 					eq(email.isDel, isDel.NORMAL),
-					lt(star.emailId, emailId)))
+					emailId ? lt(star.emailId, emailId) : undefined))
 			.orderBy(desc(star.emailId))
 			.limit(size)
 			.all();
@@ -77,6 +73,10 @@ const starService = {
 	},
 	async removeByEmailIds(c, emailIds) {
 		await orm(c).delete(star).where(inArray(star.emailId, emailIds)).run();
+	},
+
+	async removeByUserIds(c, userIds) {
+		await orm(c).delete(star).where(inArray(star.userId, userIds)).run();
 	}
 };
 

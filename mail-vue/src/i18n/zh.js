@@ -30,6 +30,7 @@ const zh = {
     change: '修改',
     changePwdBtn: '修改密码',
     username: '用户名',
+    trustLevel: '等级',
     password: '密码',
     delAccount: '删除账户',
     delAccountMsg: '此操作将永久删除您的账户及其所有数据，无法恢复',
@@ -137,6 +138,8 @@ const zh = {
     websiteSetting: '网站设置',
     websiteReg: '用户注册',
     loginDomain: '隐藏登录域名',
+    syncDelete: '同步删除',
+    syncDeleteDesc: '开启后收件箱和邮箱不再假删',
     multipleEmail: '多号模式',
     multipleEmailDesc: '开启后账号栏出现一个用户可以添加多个邮箱',
     customization: '个性化设置',
@@ -272,6 +275,7 @@ const zh = {
     rulesVerify: '规则',
     rulesVerifyTitle: 'IP 每天使用 {count} 次后触发',
     botVerifyMsg: '请完成人机验证',
+    oauthLogin: 'OAuth2',
     noticeTitle: '网站公告',
     noticePopup: '登录弹窗',
     icon: '图标',
@@ -336,6 +340,10 @@ const zh = {
     searchUser: '搜索用户',
     searchEmail: '搜索邮箱',
     searchSender: '搜索发件人',
-    userEmail: '用户邮箱'
+    userEmail: '用户邮箱',
+    oauthSetting: 'OAuth',
+    clientId: '客户端 ID',
+    clientSecret: '客户端密钥',
+    notOwner: '基础邮箱不属于您',
 }
 export default zh
