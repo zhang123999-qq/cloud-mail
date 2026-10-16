@@ -1,5 +1,6 @@
 import BizError from '../error/biz-error';
 import accountService from './account-service';
+import sessionService from './session-service';
 import orm from '../entity/orm';
 import user from '../entity/user';
 import { and, asc, count, desc, eq, inArray, sql } from 'drizzle-orm';
@@ -269,7 +270,7 @@ const userService = {
 
 		const { password, userId } = params;
 		await this.resetPassword(c, { password }, userId);
-		await c.env.kv.delete(KvConst.AUTH_INFO + userId);
+		await sessionService.del(c, userId);
 	},
 
 	async setStatus(c, params) {
@@ -283,7 +284,7 @@ const userService = {
 			.run();
 
 		if (status === userConst.status.BAN) {
-			await c.env.kv.delete(KvConst.AUTH_INFO + userId);
+			await sessionService.del(c, userId);
 		}
 	},
 
