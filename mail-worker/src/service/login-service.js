@@ -1,6 +1,9 @@
 import BizError from '../error/biz-error';
 import userService from './user-service';
 import sessionService from './session-service';
+import orm from '../entity/orm';
+import { account } from '../entity/account';
+import { eq } from 'drizzle-orm';
 import emailUtils from '../utils/email-utils';
 import { isDel, settingConst, userConst } from '../const/entity-const';
 import JwtUtils from '../utils/jwt-utils';
@@ -254,7 +257,37 @@ const loginService = {
 		await userService.updateUserInfo(c, userRow.userId);
 
 		await sessionService.put(c, userRow.userId, authInfo);
+
+		// 自定义：登录时补齐新域名的邮箱账号
+		try {
+			await this.syncDomainAccounts(c, userRow.userId);
+		} catch (e) {}
+
 		return jwt;
+	},
+
+	async syncDomainAccounts(c, userId) {
+		const domains = c.env.domain || [];
+		if (domains.length === 0) return;
+		// 取用户已有账号的前缀
+		const accounts = await orm(c).select().from(account).where(eq(account.userId, userId)).limit(1);
+		if (!accounts || accounts.length === 0) return;
+		const prefix = accounts[0].email.split('@')[0];
+		if (!prefix) return;
+		for (const domain of domains) {
+			const email = `${prefix}@${domain}`;
+			try {
+				const existing = await accountService.selectByEmailIncludeDel(c, email);
+				if (existing) continue;
+				await orm(c).insert(account).values({
+					email: email,
+					userId: userId,
+					name: prefix
+				}).returning().get();
+			} catch (e) {
+				continue;
+			}
+		}
 	},
 
 	async logout(c, userId) {
