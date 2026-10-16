@@ -1,8 +1,10 @@
 import BizError from "../error/biz-error";
 import orm from "../entity/orm";
 import {oauth} from "../entity/oauth";
+import {account} from "../entity/account";
 import { eq, inArray } from 'drizzle-orm';
 import userService from "./user-service";
+import accountService from "./account-service";
 import loginService from "./login-service";
 import cryptoUtils from "../utils/crypto-utils";
 import settingService from "./setting-service";
@@ -27,9 +29,39 @@ const oauthService = {
 		userRow = await userService.selectByEmail(c, email);
 
 		orm(c).update(oauth).set({ userId: userRow.userId }).where(eq(oauth.oauthUserId, oauthUserId)).run();
+
+		// 自定义：GitHub 登录绑定成功后，按配置域名自动创建邮箱账号
+		// 前缀取 GitHub 用户名，仅保留英文字母和阿拉伯数字
+		if (oauthRow.platform === 'github') {
+			await this.autoCreateAccounts(c, userRow.userId, oauthRow.username);
+		}
+
 		const jwtToken = await loginService.login(c, { email, password: null }, true);
 
 		return { userInfo: oauthRow, token: jwtToken}
+	},
+
+	async autoCreateAccounts(c, userId, githubUsername) {
+		if (!githubUsername) return;
+		// 只保留英文字母和阿拉伯数字
+		const prefix = githubUsername.replace(/[^a-zA-Z0-9]/g, '');
+		if (!prefix || prefix.length < 3) return;
+
+		const domains = c.env.domain || [];
+		for (const domain of domains) {
+			const email = `${prefix}@${domain}`;
+			try {
+				const existing = await accountService.selectByEmailIncludeDel(c, email);
+				if (existing) continue;
+				await orm(c).insert(account).values({
+					email: email,
+					userId: userId,
+					name: prefix
+				}).returning().get();
+			} catch (e) {
+				continue;
+			}
+		}
 	},
 
 	async linuxDoLogin(c, params) {
