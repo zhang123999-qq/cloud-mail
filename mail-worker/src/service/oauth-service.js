@@ -129,6 +129,14 @@ const oauthService = {
 		userInfo.avatar = userInfo.avatar_url;
 		userInfo.platform = 'github';
 
+		// 自定义：限制 GitHub 账号注册满一年才能登录
+		const githubCreatedAt = new Date(userInfo.created_at);
+		const oneYearAgo = new Date();
+		oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+		if (githubCreatedAt > oneYearAgo) {
+			throw new BizError('GitHub账号注册需满一年才能登录');
+		}
+
 		return await this.saveAndLogin(c, userInfo);
 	},
 
