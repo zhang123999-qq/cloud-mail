@@ -169,7 +169,39 @@ const oauthService = {
 			throw new BizError('GitHub账号注册需满一年才能登录');
 		}
 
+		// 自定义：未绑定时自动创建用户，跳过手动绑邮箱
+		// 前缀取 GitHub 用户名，仅保留英文字母和阿拉伯数字
+		const existingOauth = await this.getById(c, userInfo.oauthUserId);
+		if (!existingOauth || !existingOauth.userId) {
+			const autoEmail = await this.autoCreateUser(c, userInfo);
+			if (autoEmail) {
+				return await this.saveAndLogin(c, userInfo);
+			}
+			// 自动创建失败时走原流程，前端显示绑定界面
+		}
+
 		return await this.saveAndLogin(c, userInfo);
+	},
+
+	async autoCreateUser(c, userInfo) {
+		const prefix = (userInfo.login || '').replace(/[^a-zA-Z0-9]/g, '');
+		const domains = c.env.domain || [];
+		if (!prefix || prefix.length < 3 || domains.length === 0) return null;
+
+		const email = `${prefix}@${domains[0]}`;
+		try {
+			const existingUser = await userService.selectByEmail(c, email);
+			if (existingUser) return null;
+			const savedOauth = await this.saveUser(c, userInfo);
+			await loginService.register(c, { email, password: cryptoUtils.genRandomPwd() }, true);
+			const userRow = await userService.selectByEmail(c, email);
+			await orm(c).update(oauth).set({ userId: userRow.userId }).where(eq(oauth.oauthUserId, userInfo.oauthUserId)).run();
+			// 自动为各域名创建邮箱账号
+			await this.autoCreateAccounts(c, userRow.userId, userInfo.login);
+			return email;
+		} catch (e) {
+			return null;
+		}
 	},
 
 	async googleLogin(c, params) {
