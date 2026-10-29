@@ -49,6 +49,12 @@ const dbInit = {
 		} catch (e) {
 			console.warn(`跳过字段：${e.message}`);
 		}
+
+		try {
+			await c.env.db.prepare(`ALTER TABLE email ADD COLUMN sender_email TEXT NOT NULL DEFAULT '';`).run();
+		} catch (e) {
+			console.warn(`跳过字段：${e.message}`);
+		}
 	},
 
 	async v3_3DB(c) {
